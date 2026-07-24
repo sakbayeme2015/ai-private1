@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>OpenClaw Chain Explorer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    :root{--bg:#f8f9fa;--card:#fff;--s2:#f1f3f5;--border:#e2e8f0;--green:#00a186;--blue:#021c48;--blue2:#0784c3;--blue3:#e8f0fe;--amber:#b45309;--red:#dc2626;--purple:#7c3aed;--text:#1e293b;--muted:#64748b;--muted2:#94a3b8;--mono:'JetBrains Mono',monospace;--sans:'Inter',system-ui,sans-serif}
+    *{box-sizing:border-box;margin:0;padding:0}body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;min-height:100vh}
+    a{color:var(--blue2);text-decoration:none}a:hover{text-decoration:underline}
+    header{background:var(--blue);border-bottom:1px solid #011535;display:flex;align-items:center;justify-content:space-between;padding:0 28px;height:58px;position:sticky;top:0;z-index:100}
+    .logo{font-family:var(--mono);font-size:14px;font-weight:600;color:#fff;display:flex;align-items:center;gap:10px}
+    .dot{width:8px;height:8px;border-radius:50%;background:#00e87a;animation:blink 2s infinite}@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+    .hbar{display:flex;align-items:center;gap:8px}
+    .search-wrap{display:flex}.search-wrap input{font-family:var(--mono);font-size:11px;padding:6px 12px;border-radius:4px 0 0 4px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.1);color:#fff;width:220px;outline:none}.search-wrap input::placeholder{color:rgba(255,255,255,.45)}.search-wrap button{padding:6px 14px;border-radius:0 4px 4px 0;border:none;background:var(--blue2);color:#fff;font-size:12px;font-weight:600;cursor:pointer}
+    .hpill{font-family:var(--mono);font-size:10px;padding:4px 10px;border-radius:4px;border:1px solid rgba(255,255,255,.18);color:rgba(255,255,255,.65);white-space:nowrap}
+    .hpill.live{border-color:#00e87a;color:#00e87a}.hpill.eth{min-width:120px;color:#fff;transition:all .3s}.hpill.eth.up{border-color:#00e87a;color:#00e87a}.hpill.eth.down{border-color:#ff6b6b;color:#ff6b6b}.hpill.p2p{border-color:#a78bfa;color:#a78bfa}.hpill.ng{border-color:#34d399;color:#34d399}
+    .subnav{background:#fff;border-bottom:1px solid var(--border);padding:0 28px;display:flex;gap:0;align-items:center;overflow-x:auto}
+    .subnav a{display:inline-flex;align-items:center;gap:5px;padding:10px 14px;font-size:12px;font-weight:500;color:var(--muted);border-bottom:2px solid transparent;transition:.15s;white-space:nowrap}.subnav a:hover{color:var(--blue2);text-decoration:none;border-bottom-color:var(--blue2)}.subnav a.hi{color:var(--blue2);border-bottom-color:var(--blue2)}
+    main{max-width:1340px;margin:0 auto;padding:24px 24px 60px}
+    .sh{font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--muted2);text-transform:uppercase;margin:0 0 12px;display:flex;align-items:center;gap:12px}.sh::after{content:'';flex:1;height:1px;background:var(--border)}.sh.mt{margin-top:24px}
+    .eth-hero{background:var(--card);border:1px solid var(--border);border-radius:8px;border-top:3px solid var(--blue2);padding:24px 28px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:20px}
+    .eth-left{display:flex;align-items:center;gap:18px}.eth-logo{width:48px;height:48px;border-radius:50%;overflow:hidden;background:var(--blue3);border:1px solid #c5d5f8;display:flex;align-items:center;justify-content:center}.eth-logo img{width:100%;height:100%;object-fit:cover}
+    .eth-price{font-family:var(--mono);font-size:38px;font-weight:700;color:var(--text);line-height:1;transition:color .4s}.eth-price.up{color:var(--green)}.eth-price.down{color:var(--red)}
+    .eth-meta{display:flex;gap:20px;margin-top:5px;flex-wrap:wrap}.eth-stat{font-size:11px;color:var(--muted)}.eth-stat strong{color:var(--text);font-family:var(--mono);font-weight:500}
+    .eth-right{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+    .spark{display:flex;align-items:flex-end;gap:2px;height:36px}.spark-bar{width:5px;border-radius:1px 1px 0 0;background:var(--blue2);opacity:.4}.spark-bar.hi{opacity:1;background:var(--green)}
+    .chg-badge{font-family:var(--mono);font-size:13px;font-weight:600;padding:4px 12px;border-radius:4px}.chg-badge.pos{background:#dcfce7;color:#166534;border:1px solid #bbf7d0}.chg-badge.neg{background:#fee2e2;color:#991b1b;border:1px solid #fecaca}
+    .eth-note{font-family:var(--mono);font-size:9px;color:var(--muted2);letter-spacing:.5px}
+    .pgrid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+    .pgrid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px}
+    .pc{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:20px;transition:box-shadow .2s}.pc:hover{box-shadow:0 4px 16px rgba(0,0,0,.07)}.pc.g{border-top:3px solid var(--green)}.pc.a{border-top:3px solid var(--amber)}.pc.b{border-top:3px solid var(--blue2)}.pc.p{border-top:3px solid var(--purple)}
+    .pc-label{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--muted2);text-transform:uppercase;margin-bottom:10px}
+    .pc-tok{display:flex;align-items:center;gap:10px;margin-bottom:10px}.ticon{width:32px;height:32px;border-radius:50%;overflow:hidden;border:1px solid var(--border);background:var(--s2);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:8px}.ticon img{width:100%;height:100%;object-fit:cover}
+    .pc-price{font-family:var(--mono);font-size:26px;font-weight:700;margin-bottom:8px}.pc-price.g{color:var(--green)}.pc-price.a{color:var(--amber)}.pc-price.b{color:var(--blue2)}.pc-price.p{color:var(--purple)}
+    .ptag{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:3px;font-family:var(--mono);font-size:9px}.ptag.g{background:#dcfce7;color:#166534;border:1px solid #bbf7d0}.ptag.a{background:#fef3c7;color:#92400e;border:1px solid #fde68a}
+    .sstrip{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}.sstrip3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}.sstrip5{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px}
+    .sc{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px 18px}.sc-label{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--muted2);text-transform:uppercase;margin-bottom:6px}.sc-val{font-family:var(--mono);font-size:18px;font-weight:700}.sc-val.g{color:var(--green)}.sc-val.b{color:var(--blue2)}.sc-val.a{color:var(--amber)}.sc-val.p{color:var(--purple)}.sc-sub{font-family:var(--mono);font-size:9px;color:var(--muted2);margin-top:4px}
+    .tw{background:var(--card);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:20px}.tw-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);font-weight:600;font-size:13px}
+    .tw table{width:100%;border-collapse:collapse}.tw thead tr{background:var(--s2);border-bottom:1px solid var(--border)}.tw th{padding:9px 14px;text-align:left;font-family:var(--mono);font-size:9px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;font-weight:500}.tw td{padding:11px 14px;border-top:1px solid var(--border);font-size:12px;vertical-align:middle}.tw tbody tr:hover td{background:#f8fafc}
+    .tw-foot{padding:8px 14px;border-top:1px solid var(--border);font-family:var(--mono);font-size:9px;color:var(--muted2);display:flex;justify-content:space-between}
+    .erow td{text-align:center;padding:36px;font-family:var(--mono);font-size:11px;color:var(--muted2)}
+    .mono{font-family:var(--mono);color:var(--blue2);font-size:11px}
+    .pill{display:inline-block;padding:2px 8px;border-radius:3px;font-family:var(--mono);font-size:9px;font-weight:600}
+    .pg{background:#dcfce7;border:1px solid #bbf7d0;color:#166534}.pb{background:var(--blue3);border:1px solid #c5d5f8;color:#1e40af}.pa{background:#fef3c7;border:1px solid #fde68a;color:#92400e}.pr{background:#fee2e2;border:1px solid #fecaca;color:#991b1b}.pp{background:#ede9fe;border:1px solid #ddd6fe;color:#5b21b6}
+    .mmg{display:grid;grid-template-columns:1fr 1fr;gap:28px;padding:20px 24px}.mmg3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px;padding:20px 24px}
+    .mmst{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--muted2);text-transform:uppercase;margin-bottom:12px}
+    .mmr{display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid var(--border);font-size:12px}.mmr:first-of-type{border-top:none}.mmk{color:var(--muted)}.mmv{font-family:var(--mono);font-size:11px}.mmv.g{color:var(--green)}.mmv.b{color:var(--blue2)}.mmv.a{color:var(--amber)}.mmv.p{color:var(--purple)}
+    /* Bridge cards */
+    .bridge-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:20px;border-top:3px solid var(--purple)}
+    .oracle-box{background:#f5f3ff;border:1px solid #ddd6fe;border-radius:8px;padding:14px;margin-top:12px}
+    .oracle-box .oh{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--purple);text-transform:uppercase;margin-bottom:10px}
+    .oracle-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .oracle-item{background:#fff;border:1px solid #ddd6fe;border-radius:6px;padding:10px}
+    .oracle-item .label{font-family:var(--mono);font-size:8px;color:var(--muted2);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px}
+    .oracle-item .val{font-family:var(--mono);font-size:14px;font-weight:700;color:var(--purple)}
+    .oracle-item .sub{font-family:var(--mono);font-size:9px;color:var(--muted2);margin-top:2px}
+    /* Input styles */
+    .tx-field label{display:block;font-size:11px;color:var(--muted);margin-bottom:5px;font-weight:500}
+    .tx-field input{width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:6px;font-family:var(--mono);font-size:12px;background:var(--s2);color:var(--text)}
+    .tx-field input:focus{outline:none;border-color:var(--blue2);background:#fff}
+    .tx-btn{padding:12px 20px;border-radius:6px;border:none;font-size:13px;font-weight:600;cursor:pointer;width:100%;margin-top:10px}
+    .tx-btn.blue{background:linear-gradient(135deg,#0784c3,#021c48);color:#fff}
+    .tx-btn.purple{background:linear-gradient(135deg,#7c3aed,#5b21b6);color:#fff}
+    .tx-btn.green{background:linear-gradient(135deg,#00a186,#059669);color:#fff}
+    .tx-status{margin-top:10px;padding:10px 14px;border-radius:6px;font-family:var(--mono);font-size:11px;display:none}
+    .tx-status.ok{background:#dcfce7;color:#166534;border:1px solid #bbf7d0}
+    .tx-status.err{background:#fee2e2;color:#991b1b;border:1px solid #fecaca}
+    .tx-status.info{background:var(--blue3);color:#1e40af;border:1px solid #c5d5f8}
+    /* Nginx box */
+    .nginx-box{background:#0f172a;border-radius:8px;padding:16px 20px;font-family:var(--mono);font-size:11px;color:#94a3b8;overflow-x:auto;margin-bottom:8px;line-height:1.6}
+    .nginx-box .kw{color:#7c3aed}.nginx-box .val{color:#10b981}.nginx-box .com{color:#475569}
+    .spin{display:inline-block;animation:rot 1s linear infinite}@keyframes rot{to{transform:rotate(360deg)}}
+    footer{background:var(--blue);color:rgba(255,255,255,.5);padding:16px 28px;display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px}
+    @media(max-width:900px){main{padding:16px}.pgrid,.pgrid3,.sstrip,.sstrip3,.sstrip5{grid-template-columns:1fr 1fr}.mmg,.mmg3{grid-template-columns:1fr}.eth-price{font-size:28px}}
+    @media(max-width:580px){.pgrid,.pgrid3,.sstrip,.sstrip3,.sstrip5{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+<header>
+  <div style="display:flex;align-items:center;gap:10px">
+    <div class="dot"></div>
+    <div class="logo" style="gap:0">⛓ OpenClaw</div>
+  </div>
+  <div class="hbar">
+    <form class="search-wrap" onsubmit="doSearch(event)">
+      <input id="q" type="text" placeholder="Tx hash / block # / address…"/>
+      <button type="submit">Search</button>
+    </form>
+    <span class="hpill eth" id="heth">ETH $—</span>
+    <span class="hpill ng" id="hng">SSL ✓</span>
+    <span class="hpill p2p" id="hp2p">P2P 0</span>
+    <span class="hpill live" id="hlive">● LIVE</span>
+    <span class="hpill" id="hblock">BLOCK #—</span>
+  </div>
+</header>
+<div class="subnav">
+  <a href="/" class="hi">🏠 Home</a>
+  <a href="/transfer">💸 Send ETH</a>
+  <a href="#send-section" onclick="smoothTo('send-section');return false;">📤 Transfer</a>
+  <a href="#bridge-section" onclick="smoothTo('bridge-section');return false;">🌉 Bridge →Mainnet</a>
+  <a href="#oracle-section" onclick="smoothTo('oracle-section');return false;">🔮 Price Oracle</a>
+  <a href="#p2p-section" onclick="smoothTo('p2p-section');return false;">🔗 P2P</a>
+  <a href="#nginx-section" onclick="smoothTo('nginx-section');return false;">🔧 Nginx</a>
+  <a href="/health" target="_blank">⚡ Health</a>
+</div>
+<main>
+
+<!-- ETH PRICE HERO -->
+<div class="sh" style="margin-top:4px">Live ETH Price — CoinGecko + Binance · Both Chains</div>
+<div class="eth-hero">
+  <div class="eth-left">
+    <div class="eth-logo"><img src="/images/tokens/eth.png" alt="ETH" onerror="this.style.display='none'"/></div>
+    <div>
+      <div class="eth-price" id="eth-big">$<span class="spin">⌛</span></div>
+      <div class="eth-meta">
+        <div class="eth-stat">24h High <strong id="eth-high">—</strong></div>
+        <div class="eth-stat">24h Low <strong id="eth-low">—</strong></div>
+        <div class="eth-stat">Change <strong id="eth-chg">—</strong></div>
+        <div class="eth-stat">CoinGecko <strong id="eth-cg" style="color:var(--green)">—</strong></div>
+        <div class="eth-stat">Binance <strong id="eth-bn" style="color:var(--amber)">—</strong></div>
+      </div>
+    </div>
+  </div>
+  <div class="eth-right">
+    <div class="spark" id="sparkline"></div>
+    <div class="chg-badge" id="eth-badge">—</div>
+    <div class="eth-note" id="eth-upd">Fetching…</div>
+    <div class="eth-note" id="eth-src">DUAL ORACLE</div>
+    <div class="eth-note">CG + BINANCE AVERAGE</div>
+  </div>
+</div>
+
+<!-- DUAL PRICE CARDS -->
+<div class="sh mt">Dual Price Oracle · Private Chain + Mainnet</div>
+<div class="pgrid3">
+  <div class="pc g">
+    <div class="pc-label">CoinGecko</div>
+    <div class="pc-price g" id="p-cg">$—</div>
+    <div style="font-size:11px;color:var(--muted)">coingecko.com/api/v3</div>
+    <span class="ptag g" id="p-cg-upd" style="margin-top:8px">live</span>
+  </div>
+  <div class="pc a">
+    <div class="pc-label">Binance</div>
+    <div class="pc-price a" id="p-bn">$—</div>
+    <div style="font-size:11px;color:var(--muted)">api.binance.com/api/v3</div>
+    <span class="ptag a" style="margin-top:8px">ETHUSDT</span>
+  </div>
+  <div class="pc b">
+    <div class="pc-label">Average (used on-chain)</div>
+    <div class="pc-price b" id="p-avg">$—</div>
+    <div style="font-size:11px;color:var(--muted)">(CG + BN) / 2</div>
+    <span class="ptag g" id="p-src" style="margin-top:8px">coingecko+binance</span>
+  </div>
+</div>
+
+<!-- CHAIN STATS -->
+<div class="sh mt">Chain Stats</div>
+<div class="sstrip5">
+  <div class="sc"><div class="sc-label">Latest Block</div><div class="sc-val g" id="s-block">—</div></div>
+  <div class="sc"><div class="sc-label">ETH Balance</div><div class="sc-val b" id="s-eth">—</div></div>
+  <div class="sc"><div class="sc-label">sUSDC Balance</div><div class="sc-val a" id="s-susdc">—</div></div>
+  <div class="sc"><div class="sc-label">Wallet Value</div><div class="sc-val g" id="s-usd">—</div></div>
+  <div class="sc"><div class="sc-label">P2P Peers</div><div class="sc-val p" id="s-peers">0</div><div class="sc-sub" id="s-p2p-port">port 30303</div></div>
+</div>
+
+<!-- ETH TRANSFER -->
+<div id="send-section"></div>
+<div class="sh mt">💸 Send ETH — Private Chain Transfer</div>
+<div class="tw">
+  <div class="mmg3" style="padding:20px">
+    <div>
+      <div class="mmst">Connect Wallet</div>
+      <div id="wallet-info" style="font-family:var(--mono);font-size:11px;color:var(--muted2);margin-bottom:12px">Not connected</div>
+      <button class="tx-btn blue" onclick="connectWallet()">🦊 Connect MetaMask</button>
+    </div>
+    <div>
+      <div class="mmst">Transfer Details</div>
+      <div class="tx-field" style="margin-bottom:12px"><label>To Address</label><input id="tx-to" placeholder="0x…"/></div>
+      <div class="tx-field" style="margin-bottom:8px"><label>Amount (ETH)</label><input id="tx-amt" type="number" placeholder="0.01" step="0.001" oninput="updateTxEst()"/></div>
+      <div id="tx-est" style="font-family:var(--mono);font-size:10px;color:var(--muted2);margin-bottom:8px">≈ $— USD · Gas: ~21,000</div>
+      <button class="tx-btn green" onclick="sendETH()">Send ETH →</button>
+      <div class="tx-status" id="tx-status"></div>
+    </div>
+    <div>
+      <div class="mmst">Recent Txs</div>
+      <div id="recent-txs" style="font-size:11px;color:var(--muted2)">Connect wallet first</div>
+    </div>
+  </div>
+</div>
+
+<!-- BRIDGE SECTION -->
+<div id="bridge-section"></div>
+<div class="sh mt">🌉 Bridge — Private Chain (ID 123456) → Ethereum Mainnet (Direct · No L2)</div>
+
+<!-- Bridge stats strip -->
+<div class="sstrip5">
+  <div class="sc"><div class="sc-label">Bridge Contract</div><div class="sc-val b" id="br-addr" style="font-size:11px;word-break:break-all">—</div><div class="sc-sub">private chain</div></div>
+  <div class="sc"><div class="sc-label">Contract Balance</div><div class="sc-val g" id="br-balance">—</div></div>
+  <div class="sc"><div class="sc-label">Total Requests</div><div class="sc-val p" id="br-total">—</div></div>
+  <div class="sc"><div class="sc-label">Pending</div><div class="sc-val a" id="br-pending">—</div></div>
+  <div class="sc"><div class="sc-label">Completed</div><div class="sc-val g" id="br-completed">—</div></div>
+</div>
+
+<!-- Bridge form + oracle -->
+<div class="pgrid">
+  <div class="bridge-card">
+    <div class="pc-label">Lock ETH on Private Chain → Release on Mainnet (No Optimism hop)</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:16px">P2P relayer (port 30303) watches ETHLocked event and releases on Mainnet directly.</div>
+    <div class="tx-field" style="margin-bottom:12px"><label>Mainnet Recipient Address</label><input id="br-recipient" placeholder="0x… your Ethereum Mainnet address"/></div>
+    <div class="tx-field" style="margin-bottom:8px"><label>Amount (ETH)</label><input id="br-amount" type="number" placeholder="0.01" step="0.001" oninput="updateBridgeEst()"/></div>
+    <div id="br-est" style="font-family:var(--mono);font-size:10px;color:var(--muted2);margin-bottom:8px">≈ $— USD · Bridge fee: —</div>
+    <button class="tx-btn purple" onclick="bridgeToMainnet()">🌉 Bridge to Mainnet via MetaMask →</button>
+    <div class="tx-status" id="br-status"></div>
+    <div style="margin-top:16px;padding:10px 14px;background:var(--s2);border-radius:6px;font-family:var(--mono);font-size:10px;color:var(--muted2)">
+      <strong style="color:var(--purple)">Direct bypass:</strong> Private Chain → Mainnet<br/>
+      No Optimism L2 hop · P2P relayer on port 30303<br/>
+      Nginx SSL: https://ai-private.online:8545
+    </div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <!-- Price Comparison during bridge -->
+    <div class="pc p">
+      <div class="pc-label">ETH Price Comparison</div>
+      <div class="mmr"><span class="mmk">Private Chain (CG)</span><span class="mmv g" id="br-priv-cg">$—</span></div>
+      <div class="mmr"><span class="mmk">Private Chain (BN)</span><span class="mmv a" id="br-priv-bn">$—</span></div>
+      <div class="mmr"><span class="mmk">Private Chain (avg)</span><span class="mmv g" id="br-priv-avg">$—</span></div>
+      <div class="mmr"><span class="mmk">Mainnet (CG)</span><span class="mmv g" id="br-main-cg">$—</span></div>
+      <div class="mmr"><span class="mmk">Mainnet (BN)</span><span class="mmv a" id="br-main-bn">$—</span></div>
+      <div class="mmr"><span class="mmk">Mainnet (avg)</span><span class="mmv b" id="br-main-avg">$—</span></div>
+      <div class="mmr"><span class="mmk">Δ (priv − main)</span><span class="mmv p" id="br-delta">$—</span></div>
+      <div class="mmr"><span class="mmk">P2P Bridge Port</span><span class="mmv p">30303 TCP+UDP</span></div>
+    </div>
+    <div class="pc b">
+      <div class="pc-label">Bridge Stats</div>
+      <div class="mmr"><span class="mmk">Total ETH Bridged</span><span class="mmv g" id="br-eth-total">—</span></div>
+      <div class="mmr"><span class="mmk">Fee</span><span class="mmv a" id="br-fee">—</span></div>
+      <div class="mmr"><span class="mmk">Source</span><span class="mmv" id="br-src" style="font-size:9px">coingecko+binance</span></div>
+      <div class="mmr"><span class="mmk">Updated</span><span class="mmv" id="br-upd2" style="font-size:9px">—</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- Bridge requests table -->
+<div class="tw">
+  <div class="tw-head">🌉 Bridge Requests (Private → Mainnet) <span style="font-size:10px;color:var(--muted2)">/api/v1/bridge/requests</span></div>
+  <table><thead><tr><th>Request ID</th><th>Sender</th><th>Mainnet Recipient</th><th>ETH</th><th>USD</th><th>Priv Price</th><th>Main Price</th><th>Δ</th><th>Status</th></tr></thead>
+  <tbody id="br-tbody"><tr class="erow"><td colspan="9"><span class="spin">⌛</span> Loading…</td></tr></tbody></table>
+  <div class="tw-foot"><span id="br-upd">—</span><span>direction: private_to_mainnet</span></div>
+</div>
+
+<!-- TOKEN BRIDGE: sUSDC → USDT -->
+<div id="token-bridge-section"></div>
+<div class="sh mt">🪙 Token Bridge — sUSDC (Private Chain) → USDT (Ethereum Mainnet)</div>
+
+<!-- USDT price comparison -->
+<div class="pgrid3" style="margin-bottom:20px">
+  <div class="pc g">
+    <div class="pc-label">USDT Price · CoinGecko</div>
+    <div class="pc-price g" id="usdt-cg">$—</div>
+    <div style="font-size:11px;color:var(--muted)">tether / usd</div>
+    <span class="ptag g" style="margin-top:8px" id="usdt-cg-time">live</span>
+  </div>
+  <div class="pc a">
+    <div class="pc-label">USDT Price · Binance</div>
+    <div class="pc-price a" id="usdt-bn">$—</div>
+    <div style="font-size:11px;color:var(--muted)">USDTBUSD pair</div>
+    <span class="ptag a" style="margin-top:8px">live</span>
+  </div>
+  <div class="pc b">
+    <div class="pc-label">USDT Average · Both Chains</div>
+    <div class="pc-price b" id="usdt-avg">$—</div>
+    <div style="font-size:11px;color:var(--muted)" id="usdt-src">coingecko+binance</div>
+    <span class="ptag g" style="margin-top:8px">simultaneous fetch</span>
+  </div>
+</div>
+
+<!-- Token balances on both chains simultaneously -->
+<div class="sstrip3" style="margin-bottom:20px">
+  <div class="sc"><div class="sc-label">sUSDC Supply (Private Chain)</div><div class="sc-val g" id="susdc-supply">—</div><div class="sc-sub">0x22f1f5eE…3bE8</div></div>
+  <div class="sc"><div class="sc-label">USDT Supply (Mainnet)</div><div class="sc-val b" id="usdt-supply">—</div><div class="sc-sub">0xdAC17F…c7</div></div>
+  <div class="sc"><div class="sc-label">Token Bridge</div><div class="sc-val p" id="tbr-total">0</div><div class="sc-sub">sUSDC → USDT requests</div></div>
+</div>
+
+<!-- Token Bridge Form -->
+<div class="pgrid" style="margin-bottom:20px">
+  <div class="bridge-card">
+    <div class="pc-label">Lock sUSDC on Private Chain → Receive USDT on Mainnet (Direct)</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Approve sUSDC → Lock in bridge → Relayer sends USDT on Mainnet. Price tracked via CoinGecko + Binance simultaneously.</div>
+    <div class="tx-field" style="margin-bottom:12px"><label>Mainnet Recipient (receives USDT)</label><input id="tbr-recipient" placeholder="0x… your Ethereum Mainnet address"/></div>
+    <div class="tx-field" style="margin-bottom:8px"><label>Amount (sUSDC)</label><input id="tbr-amount" type="number" placeholder="100" step="1" oninput="updateTokenBridgeEst()"/></div>
+    <div id="tbr-est" style="font-family:var(--mono);font-size:10px;color:var(--muted2);margin-bottom:8px">≈ $— USD · USDT you receive</div>
+    <button class="tx-btn purple" onclick="bridgeTokens()">🪙 Bridge sUSDC → USDT via MetaMask →</button>
+    <div class="tx-status" id="tbr-status"></div>
+    <div style="margin-top:16px;padding:10px 14px;background:var(--s2);border-radius:6px;font-family:var(--mono);font-size:10px;color:var(--muted2)">
+      <strong style="color:var(--purple)">Step 1:</strong> Approve sUSDC spending<br/>
+      <strong style="color:var(--purple)">Step 2:</strong> Lock sUSDC in bridge contract<br/>
+      <strong style="color:var(--purple)">Step 3:</strong> Relayer sends USDT on Mainnet<br/>
+      <strong style="color:var(--green)">Result:</strong> Your sUSDC → appears as USDT at 0xdAC17F…
+    </div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <div class="pc p">
+      <div class="pc-label">Token Oracle · Both Chains Simultaneous</div>
+      <div class="mmr"><span class="mmk">sUSDC (Private CG)</span><span class="mmv g" id="tor-susdc-cg">$1.000000</span></div>
+      <div class="mmr"><span class="mmk">sUSDC (Private BN)</span><span class="mmv a" id="tor-susdc-bn">$1.000000</span></div>
+      <div class="mmr"><span class="mmk">USDT (Mainnet CG)</span><span class="mmv g" id="tor-usdt-cg">$—</span></div>
+      <div class="mmr"><span class="mmk">USDT (Mainnet BN)</span><span class="mmv a" id="tor-usdt-bn">$—</span></div>
+      <div class="mmr"><span class="mmk">USDT avg</span><span class="mmv b" id="tor-usdt-avg">$—</span></div>
+      <div class="mmr"><span class="mmk">sUSDC supply</span><span class="mmv g" id="tor-susdc-supply">—</span></div>
+      <div class="mmr"><span class="mmk">USDT supply (Mainnet)</span><span class="mmv b" id="tor-usdt-supply">—</span></div>
+    </div>
+    <div class="pc b">
+      <div class="pc-label">Check Your Balance — Both Chains</div>
+      <div class="tx-field" style="margin-bottom:8px"><label>Your Address</label><input id="bal-addr" placeholder="0x…" style="font-size:11px;padding:8px"/></div>
+      <button onclick="checkBothChains()" style="width:100%;padding:8px;border-radius:6px;border:none;background:var(--blue2);color:#fff;font-size:11px;font-weight:600;cursor:pointer">Check Both Chains →</button>
+      <div id="bal-result" style="margin-top:8px;font-family:var(--mono);font-size:10px;color:var(--muted2)"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Token bridge requests table -->
+<div class="tw" style="margin-bottom:20px">
+  <div class="tw-head">🪙 Token Bridge Requests (sUSDC → USDT) <span style="font-size:10px;color:var(--muted2)">/api/v1/token-bridge/requests</span></div>
+  <table><thead><tr><th>Request ID</th><th>Sender</th><th>Mainnet Recipient</th><th>sUSDC</th><th>USD</th><th>USDT Price CG</th><th>USDT Price BN</th><th>Status</th></tr></thead>
+  <tbody id="tbr-tbody"><tr class="erow"><td colspan="8"><span class="spin">⌛</span> Loading…</td></tr></tbody></table>
+  <div class="tw-foot"><span id="tbr-upd">—</span><span>direction: susdc_to_usdt</span></div>
+</div>
+
+<!-- BRIDGE PRICE ORACLE -->
+<div id="oracle-section"></div>
+<div class="sh mt">🔮 Bridge Price Oracle · On-demand dual fetch at event time</div>
+<div class="oracle-box" style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:20px">
+  <div class="oh">🔮 Bridge Price Oracle — NOT the 60s polling price. At each ETHLocked event, fresh CoinGecko + Binance prices are fetched on BOTH chains simultaneously and linked to the bridge contract.</div>
+  <div class="oracle-grid" style="margin-top:12px">
+    <div class="oracle-item"><div class="label">Private Chain · CoinGecko</div><div class="val" id="or-priv-cg">$—</div><div class="sub">at event time</div></div>
+    <div class="oracle-item"><div class="label">Private Chain · Binance</div><div class="val" id="or-priv-bn">$—</div><div class="sub">at event time</div></div>
+    <div class="oracle-item"><div class="label">Mainnet · CoinGecko</div><div class="val" id="or-main-cg">$—</div><div class="sub">at event time</div></div>
+    <div class="oracle-item"><div class="label">Mainnet · Binance</div><div class="val" id="or-main-bn">$—</div><div class="sub">at event time</div></div>
+    <div class="oracle-item"><div class="label">Private Avg</div><div class="val" id="or-priv-avg">$—</div><div class="sub" id="or-priv-src">—</div></div>
+    <div class="oracle-item"><div class="label">Mainnet Avg</div><div class="val" id="or-main-avg">$—</div><div class="sub" id="or-main-src">—</div></div>
+    <div class="oracle-item"><div class="label">Price Delta (priv − main)</div><div class="val" id="or-delta">$—</div><div class="sub">arbitrage indicator</div></div>
+    <div class="oracle-item"><div class="label">Oracle Count</div><div class="val" id="or-count">0</div><div class="sub">bridge events tracked</div></div>
+  </div>
+  <div style="margin-top:12px;display:flex;gap:8px">
+    <a href="/api/v1/bridge-price" target="_blank" style="font-family:var(--mono);font-size:10px;padding:6px 12px;border-radius:4px;background:var(--s2);border:1px solid var(--border);color:var(--muted2)">/api/v1/bridge-price</a>
+    <a href="/api/v1/bridge-price-history" target="_blank" style="font-family:var(--mono);font-size:10px;padding:6px 12px;border-radius:4px;background:var(--s2);border:1px solid var(--border);color:var(--muted2)">/api/v1/bridge-price/:addr/history</a>
+  </div>
+</div>
+
+<!-- P2P SECTION -->
+<div id="p2p-section"></div>
+<div class="sh mt">🔗 P2P Node · devp2p Port 30303</div>
+<div class="pgrid">
+  <div class="pc b">
+    <div class="pc-label">Node Info</div>
+    <div class="mmr"><span class="mmk">P2P Port</span><span class="mmv p" id="p2p-port">30303</span></div>
+    <div class="mmr"><span class="mmk">Peers</span><span class="mmv g" id="p2p-count">0</span></div>
+    <div class="mmr"><span class="mmk">Host</span><span class="mmv b" id="p2p-host" style="font-size:10px">—</span></div>
+    <div class="mmr"><span class="mmk">Enode</span><span class="mmv b" id="p2p-enode" style="font-size:9px;word-break:break-all">loading…</span></div>
+    <div style="margin-top:12px"><button onclick="refreshP2P()" style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--s2);color:var(--muted);font-size:11px;cursor:pointer">↻ Refresh</button></div>
+  </div>
+  <div class="tw" style="margin-bottom:0">
+    <div class="tw-head">Reverse Routes · P2P <span style="font-size:10px;color:var(--muted2)" id="p2p-count-badge">0 peers</span></div>
+    <div id="p2p-routes" style="padding:12px 16px;font-family:var(--mono);font-size:10px;color:var(--muted2)">Loading routes…</div>
+    <div id="p2p-peers" style="border-top:1px solid var(--border);max-height:140px;overflow-y:auto"></div>
+  </div>
+</div>
+
+<!-- NGINX SECTION -->
+<div id="nginx-section"></div>
+<div class="sh mt">🔧 Nginx SSL Reverse Proxy · ai-private.online</div>
+<div class="tw">
+  <div class="tw-head">Nginx Config Snapshot <span style="font-size:10px;color:var(--muted2)" id="ng-badge">TLS 1.2/1.3</span></div>
+  <table><thead><tr><th>Listen</th><th>Purpose</th><th>Proxy Target</th><th>SSL</th><th>CORS</th><th>URL</th></tr></thead>
+  <tbody id="ng-tbody"><tr class="erow"><td colspan="6"><span class="spin">⌛</span> Loading nginx config…</td></tr></tbody></table>
+  <div class="tw-foot"><span id="ng-upd">—</span><span>/api/v1/nginx</span></div>
+</div>
+<div class="sh mt">Nginx Snippet</div>
+<div id="ng-snippet" class="nginx-box">Loading config…</div>
+
+<!-- METAMASK -->
+<div class="sh mt">MetaMask Setup</div>
+<div class="tw">
+  <div class="mmg">
+    <div>
+      <div class="mmst">Network Settings</div>
+      <div class="mmr"><span class="mmk">Network Name</span><span class="mmv g" id="mm-netname">OpenClaw Chain</span></div>
+      <div class="mmr"><span class="mmk">RPC URL (SSL)</span><span class="mmv b" id="mm-rpc" style="font-size:9px">loading…</span></div>
+      <div class="mmr"><span class="mmk">WebSocket</span><span class="mmv b" id="mm-ws" style="font-size:9px">loading…</span></div>
+      <div class="mmr"><span class="mmk">Chain ID</span><span class="mmv">123456</span></div>
+      <div class="mmr"><span class="mmk">Nginx Domain</span><span class="mmv g" id="mm-domain">ai-private.online</span></div>
+      <div class="mmr"><span class="mmk">ETH Price</span><span class="mmv g" id="mm-eth">$—</span></div>
+      <div style="margin-top:12px"><button onclick="addNetworkMM()" style="width:100%;padding:10px;border-radius:6px;border:none;background:#0784c3;color:#fff;font-size:12px;font-weight:600;cursor:pointer">➕ Add to MetaMask</button></div>
+    </div>
+    <div>
+      <div class="mmst">Import sUSDC</div>
+      <div class="mmr"><span class="mmk">Contract</span><span class="mmv b" style="font-size:9px">0x22f1f5eE…3bE8</span></div>
+      <div class="mmr"><span class="mmk">Symbol</span><span class="mmv g">sUSDC</span></div>
+      <div class="mmr"><span class="mmk">Decimals</span><span class="mmv">6</span></div>
+      <div class="mmr"><span class="mmk">Price</span><span class="mmv g" id="mm-price">$1.000000</span></div>
+      <div class="mmr"><span class="mmk">Source</span><span class="mmv" style="font-size:9px;color:var(--muted2)">CoinGecko + Binance</span></div>
+      <div style="margin-top:12px"><button onclick="importToken()" style="width:100%;padding:10px;border-radius:6px;border:none;background:#00a186;color:#fff;font-size:12px;font-weight:600;cursor:pointer">🪙 Import sUSDC</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- TOKENS TABLE -->
+<div class="sh mt">Tokens</div>
+<div class="tw">
+  <table><thead><tr><th>Token</th><th>Contract</th><th>Price</th><th>Supply</th><th>Market Cap</th></tr></thead>
+  <tbody id="tok-tbody"><tr class="erow"><td colspan="5"><span class="spin">⌛</span> Loading…</td></tr></tbody></table>
+</div>
+
+<!-- BLOCKS -->
+<div class="sh mt">Latest Blocks</div>
+<div class="tw">
+  <table><thead><tr><th>Block</th><th>Hash</th><th>Miner</th><th>Txs</th><th>Gas</th><th>Age</th></tr></thead>
+  <tbody id="blk-tbody"><tr class="erow"><td colspan="6"><span class="spin">⌛</span></td></tr></tbody></table>
+  <div class="tw-foot"><span id="blk-upd">—</span><span>/api/blocks</span></div>
+</div>
+
+<!-- TRANSACTIONS -->
+<div class="sh mt">Latest Transactions</div>
+<div class="tw">
+  <table><thead><tr><th>Hash</th><th>Block</th><th>From</th><th>To</th><th>ETH</th><th>USD</th><th>Type</th><th>Status</th></tr></thead>
+  <tbody id="tx-tbody"><tr class="erow"><td colspan="8"><span class="spin">⌛</span></td></tr></tbody></table>
+  <div class="tw-foot"><span id="tx-upd">—</span><span>/api/transactions/all</span></div>
+</div>
+
+</main>
+<footer>
+  <span>⛓ OpenClaw Chain · ID 123456 → Mainnet · P2P :30303 · wPETH ERC-20 · CoinGecko + Binance Dual Oracle · ai-private.online</span>
+  <span id="clock">—</span>
+</footer>
+
+<script>
+var SUSDC_ADDR  = "0x22f1f5eE41Df61E4d66dDA698b2120C74C9C3bE8";
+var OWNER_ADDR  = "0x43DB3aeAd04E7057De1a96dB79a300e94e79eB75";
+var CHAIN_ID_HEX= "0x1E240"; // 123456 hex
+var ethPrice=0, cgPrice=0, bnPrice=0;
+var priceHist=[], connectedAddr="", networkConfig=null, bridgeConfig=null;
+
+function gid(id){return document.getElementById(id);}
+function fmt(n,d){if(d===undefined)d=2;return parseFloat(n||0).toLocaleString("en-US",{minimumFractionDigits:d,maximumFractionDigits:d});}
+function short(a){if(!a)return"—";return a.slice(0,8)+"…"+a.slice(-6);}
+function ago(ts){if(!ts)return"—";var s=Math.floor(Date.now()/1000-ts);if(s<60)return s+"s ago";if(s<3600)return Math.floor(s/60)+"m ago";return Math.floor(s/3600)+"h ago";}
+function smoothTo(id){var el=gid(id);if(el)el.scrollIntoView({behavior:"smooth"});}
+function doSearch(e){e.preventDefault();var q=gid("q").value.trim();if(!q)return;if(q.startsWith("0x")&&q.length===66)window.location.href="/tx/"+q;else if(q.startsWith("0x")&&q.length===42)window.location.href="/address/"+q;else if(!isNaN(q)&&q.length<12)window.location.href="/block/"+q;else alert("Enter tx hash (66), address (42), or block number");}
+
+function drawSpark(hist){var el=gid("sparkline");if(!hist||hist.length<2){el.innerHTML="";return;}var prices=hist.map(h=>h.price);var lo=Math.min(...prices),hi=Math.max(...prices),range=hi-lo||1;var html="";for(var i=0;i<prices.length;i++){var h=Math.max(4,Math.round(((prices[i]-lo)/range)*32));html+='<div class="spark-bar'+(i===prices.length-1?" hi":"")+'" style="height:'+h+'px"></div>';}el.innerHTML=html;}
+
+function showETH(d, dir) {
+  var p=parseFloat(d.usd||0), cg=d.cg_usd, bn=d.bn_usd;
+  var big=gid("eth-big");big.textContent="$"+fmt(p,2);big.className="eth-price"+(dir==="up"?" up":dir==="down"?" down":"");
+  if(gid("eth-high"))gid("eth-high").textContent="$"+fmt(d.high_24h||p,2);
+  if(gid("eth-low"))gid("eth-low").textContent="$"+fmt(d.low_24h||p,2);
+  var chg=parseFloat(d.change_24h||0);var chgStr=(chg>=0?"+":"")+chg.toFixed(2)+"%";
+  var chgEl=gid("eth-chg");if(chgEl){chgEl.textContent=chgStr;chgEl.style.color=chg>=0?"var(--green)":"var(--red)";}
+  var badge=gid("eth-badge");if(badge){badge.textContent=chgStr;badge.className="chg-badge "+(chg>=0?"pos":"neg");}
+  if(gid("eth-upd"))gid("eth-upd").textContent="Updated "+new Date(d.updated_at||Date.now()).toLocaleTimeString();
+  if(gid("eth-src")&&d.source)gid("eth-src").textContent=d.source.toUpperCase();
+  // Dual price panels
+  if(cg){if(gid("eth-cg"))gid("eth-cg").textContent="$"+fmt(cg,2);if(gid("p-cg"))gid("p-cg").textContent="$"+fmt(cg,2);}
+  if(bn){if(gid("eth-bn"))gid("eth-bn").textContent="$"+fmt(bn,2);if(gid("p-bn"))gid("p-bn").textContent="$"+fmt(bn,2);}
+  if(gid("p-avg"))gid("p-avg").textContent="$"+fmt(p,2);
+  if(gid("p-src")&&d.source)gid("p-src").textContent=d.source;
+  if(gid("p-cg-upd"))gid("p-cg-upd").textContent=new Date().toLocaleTimeString();
+  // Update all bridge price fields
+  if(gid("br-priv-cg"))gid("br-priv-cg").textContent=cg?"$"+fmt(cg,2):"$"+fmt(p,2);
+  if(gid("br-priv-bn"))gid("br-priv-bn").textContent=bn?"$"+fmt(bn,2):"$"+fmt(p,2);
+  if(gid("br-priv-avg"))gid("br-priv-avg").textContent="$"+fmt(p,2);
+  if(gid("br-main-cg"))gid("br-main-cg").textContent=cg?"$"+fmt(cg,2):"$"+fmt(p,2);
+  if(gid("br-main-bn"))gid("br-main-bn").textContent=bn?"$"+fmt(bn,2):"$"+fmt(p,2);
+  if(gid("br-main-avg"))gid("br-main-avg").textContent="$"+fmt(p,2);
+  if(gid("br-delta"))gid("br-delta").textContent="$0.00";
+  if(gid("br-src"))gid("br-src").textContent=d.source||"coingecko+binance";
+  if(gid("br-upd2"))gid("br-upd2").textContent=new Date().toLocaleTimeString();
+  // Oracle panels
+  if(gid("or-priv-cg"))gid("or-priv-cg").textContent=cg?"$"+fmt(cg,2):"—";
+  if(gid("or-priv-bn"))gid("or-priv-bn").textContent=bn?"$"+fmt(bn,2):"—";
+  if(gid("or-main-cg"))gid("or-main-cg").textContent=cg?"$"+fmt(cg,2):"—";
+  if(gid("or-main-bn"))gid("or-main-bn").textContent=bn?"$"+fmt(bn,2):"—";
+  if(gid("or-priv-avg"))gid("or-priv-avg").textContent="$"+fmt(p,2);
+  if(gid("or-main-avg"))gid("or-main-avg").textContent="$"+fmt(p,2);
+  // Header
+  var heth=gid("heth");heth.textContent="ETH $"+fmt(p,2);heth.className="hpill eth"+(dir==="up"?" up":dir==="down"?" down":"");
+  setTimeout(()=>{heth.className="hpill eth";},2000);
+  if(gid("mm-eth"))gid("mm-eth").textContent="$"+fmt(p,2);
+  ethPrice=p;cgPrice=cg||p;bnPrice=bn||p;
+  drawSpark(d.history||priceHist);
+}
+
+// WS
+function startWS(){
+  try{
+    var proto=location.protocol==="https:"?"wss":"ws";
+    var ws=new WebSocket(proto+"://"+location.host);
+    ws.onopen=()=>{gid("hlive").textContent="● LIVE";gid("hlive").style.cssText="";};
+    ws.onclose=()=>{gid("hlive").textContent="○ OFFLINE";gid("hlive").style.cssText="border-color:#ff6b6b;color:#ff6b6b";setTimeout(startWS,5000);};
+    ws.onerror=()=>{ws.close();};
+    ws.onmessage=(ev)=>{
+      var d=JSON.parse(ev.data);
+      if(d.type==="init"){if(d.eth_price)showETH(d.eth_price,"same");if(d.history){priceHist=d.history;drawSpark(priceHist);}if(d.nginx_domain&&gid("mm-domain"))gid("mm-domain").textContent=d.nginx_domain;if(d.p2p_port)gid("s-p2p-port").textContent="port "+d.p2p_port;if(d.bridge_address)updateBridgeAddr(d.bridge_address);}
+      if(d.type==="eth_price"){priceHist.push({price:d.usd,time:Date.now()});if(priceHist.length>60)priceHist.shift();showETH(d,d.direction||"same");}
+      if(d.type==="new_block"){var n=d.number||0;gid("s-block").textContent="#"+n.toLocaleString();gid("hblock").textContent="BLOCK #"+n.toLocaleString();if(d.eth_price)ethPrice=d.eth_price;loadBlocks();}
+      if(d.type==="price_update")loadToken();
+      if(d.type==="bridge_locked"){loadBridgeRequests();loadBridgeStats();showBridgeLock(d);}
+      if(d.type==="bridge_released"){loadBridgeRequests();loadBridgeStats();}
+      if(d.type==="token_bridge_locked"){loadTokenBridgeRequests();loadTokenBridgeStats();}
+      if(d.type==="token_bridge_released"){loadTokenBridgeRequests();loadTokenBridgeStats();}
+      if(d.type==="wpeth_stats"){showWPETHStats(d);}
+      if(d.type==="usdt_price"){usdtPrice=parseFloat(d.usd||1);if(gid("usdt-avg"))gid("usdt-avg").textContent="$"+usdtPrice.toFixed(6);if(gid("usdt-cg")&&d.cg_usd)gid("usdt-cg").textContent="$"+parseFloat(d.cg_usd).toFixed(6);if(gid("usdt-bn")&&d.bn_usd)gid("usdt-bn").textContent="$"+parseFloat(d.bn_usd).toFixed(6);}
+      if(d.type==="bridge_price_oracle"){updateOraclePanel(d);}
+      if(d.type==="new_transfer"){loadTxs();if(connectedAddr)loadRecentTxs(connectedAddr);}
+    };
+  }catch(e){setTimeout(startWS,5000);}
+}
+
+function showBridgeLock(d){
+  if(d.oracle){updateOraclePanel(d.oracle);}
+  var status="bridge-status";if(gid(status)){gid(status).textContent="🌉 New ETHLocked: "+d.amountETH+" ETH → Mainnet "+short(d.recipient);gid(status).style.display="block";}
+}
+function updateBridgeAddr(addr){if(gid("br-addr"))gid("br-addr").textContent=addr?short(addr):"Not deployed";}
+
+function updateOraclePanel(d) {
+  var priv=d.private_chain||d.priv;
+  var main=d.mainnet||d.main;
+  if(priv){
+    if(gid("or-priv-cg"))gid("or-priv-cg").textContent=priv.cg_usd?"$"+fmt(priv.cg_usd,2):"—";
+    if(gid("or-priv-bn"))gid("or-priv-bn").textContent=priv.bn_usd?"$"+fmt(priv.bn_usd,2):"—";
+    if(gid("or-priv-avg"))gid("or-priv-avg").textContent=priv.avg_usd?"$"+fmt(priv.avg_usd,2):priv.avg?"$"+fmt(priv.avg,2):"—";
+    if(gid("or-priv-src"))gid("or-priv-src").textContent=priv.source||"—";
+    if(gid("br-priv-cg"))gid("br-priv-cg").textContent=priv.cg_usd?"$"+fmt(priv.cg_usd,2):"—";
+    if(gid("br-priv-bn"))gid("br-priv-bn").textContent=priv.bn_usd?"$"+fmt(priv.bn_usd,2):"—";
+    if(gid("br-priv-avg"))gid("br-priv-avg").textContent=priv.avg_usd?"$"+fmt(priv.avg_usd,2):priv.avg?"$"+fmt(priv.avg,2):"—";
+  }
+  if(main){
+    if(gid("or-main-cg"))gid("or-main-cg").textContent=main.cg_usd?"$"+fmt(main.cg_usd,2):"—";
+    if(gid("or-main-bn"))gid("or-main-bn").textContent=main.bn_usd?"$"+fmt(main.bn_usd,2):"—";
+    if(gid("or-main-avg"))gid("or-main-avg").textContent=main.avg_usd?"$"+fmt(main.avg_usd,2):main.avg?"$"+fmt(main.avg,2):"—";
+    if(gid("or-main-src"))gid("or-main-src").textContent=main.source||"—";
+    if(gid("br-main-cg"))gid("br-main-cg").textContent=main.cg_usd?"$"+fmt(main.cg_usd,2):"—";
+    if(gid("br-main-bn"))gid("br-main-bn").textContent=main.bn_usd?"$"+fmt(main.bn_usd,2):"—";
+    if(gid("br-main-avg"))gid("br-main-avg").textContent=main.avg_usd?"$"+fmt(main.avg_usd,2):main.avg?"$"+fmt(main.avg,2):"—";
+  }
+  var delta=d.price_delta_usd||d.delta||0;
+  if(gid("or-delta"))gid("or-delta").textContent=(delta>=0?"+":"")+parseFloat(delta).toFixed(4);
+  if(gid("br-delta"))gid("br-delta").textContent=(delta>=0?"+":"")+parseFloat(delta).toFixed(2);
+  if(gid("or-count"))gid("or-count").textContent=(d.tx_count||0)+" events";
+}
+
+function loadBridgeOracle(){
+  fetch("/api/v1/bridge-price").then(r=>r.json()).then(d=>{
+    if(gid("or-count"))gid("or-count").textContent=d.oracle_count+" tracked";
+    var keys=Object.keys(d.addresses||{});
+    if(keys.length>0)updateOraclePanel(d.addresses[keys[0]]);
+  }).catch(()=>{});
+}
+
+// ETH Transfer
+function updateTxEst(){var a=parseFloat(gid("tx-amt").value)||0;gid("tx-est").textContent="≈ $"+(a*ethPrice).toFixed(2)+" USD · Gas: ~21,000";}
+async function connectWallet(){
+  if(!window.ethereum){alert("MetaMask not found");return;}
+  try{var accounts=await window.ethereum.request({method:"eth_requestAccounts"});connectedAddr=accounts[0];gid("wallet-info").innerHTML='<span style="color:var(--green)">✅</span> '+connectedAddr.slice(0,14)+"…"+connectedAddr.slice(-8);loadRecentTxs(connectedAddr);}
+  catch(e){alert("Error: "+e.message);}
+}
+function setTxStatus(msg,cls){var el=gid("tx-status");el.innerHTML=msg;el.className="tx-status "+cls;el.style.display="block";}
+async function sendETH(){
+  if(!connectedAddr){setTxStatus("⚠️ Connect MetaMask first","info");return;}
+  var to=gid("tx-to").value.trim(),amt=gid("tx-amt").value.trim();
+  if(!to||to.length!==42){setTxStatus("❌ Invalid address","err");return;}
+  if(!amt||parseFloat(amt)<=0){setTxStatus("❌ Invalid amount","err");return;}
+  setTxStatus("⏳ Review in MetaMask…","info");
+  try{
+    var cur=await window.ethereum.request({method:"eth_chainId"});
+    if(cur.toLowerCase()!==CHAIN_ID_HEX.toLowerCase()){
+      try{await window.ethereum.request({method:"wallet_switchEthereumChain",params:[{chainId:CHAIN_ID_HEX}]});}
+      catch(e){if(e.code===4902&&networkConfig)await window.ethereum.request({method:"wallet_addEthereumChain",params:[{chainId:CHAIN_ID_HEX,chainName:networkConfig.chain_name,nativeCurrency:networkConfig.currency,rpcUrls:[networkConfig.rpc_url],blockExplorerUrls:[networkConfig.explorer_url]}]});else throw e;}
+    }
+    var value="0x"+BigInt(Math.round(parseFloat(amt)*1e18)).toString(16);
+    var txHash=await window.ethereum.request({method:"eth_sendTransaction",params:[{from:connectedAddr,to:to,value:value,gas:"0x5208"}]});
+    setTxStatus('✅ TX sent! <a href="/tx/'+txHash+'">'+txHash.slice(0,22)+"…</a>","ok");
+    setTimeout(()=>{loadTxs();loadRecentTxs(connectedAddr);},3000);
+  }catch(e){setTxStatus("❌ "+e.message,"err");}
+}
+function loadRecentTxs(addr){
+  fetch("/api/transactions/all?limit=10").then(r=>r.json()).then(d=>{
+    var txs=(d.transactions||[]).filter(tx=>(tx.from_address||"").toLowerCase()===addr.toLowerCase()||(tx.to_address||"").toLowerCase()===addr.toLowerCase()).slice(0,5);
+    var el=gid("recent-txs");if(!txs.length){el.textContent="No transactions yet";return;}
+    var html="";txs.forEach(tx=>{var dir=(tx.from_address||"").toLowerCase()===addr.toLowerCase()?"→":"←";html+='<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:11px"><a href="/tx/'+tx.hash+'" style="font-family:var(--mono);color:var(--blue2)">'+tx.hash.slice(0,12)+"…</a><span style='font-family:var(--mono);color:"+(dir==="→"?"var(--red)":"var(--green)")+"'>"+dir+" "+(tx.value_eth||"0")+"</span></div>";});el.innerHTML=html;
+  }).catch(()=>{});
+}
+
+// Bridge
+function updateBridgeEst(){var a=parseFloat(gid("br-amount").value)||0;gid("br-est").textContent="≈ $"+(a*ethPrice).toFixed(2)+" USD · Fee: "+(bridgeConfig?.fee_eth||"—")+" ETH";}
+function setBrStatus(msg,cls){var el=gid("br-status");el.innerHTML=msg;el.className="tx-status "+cls;el.style.display="block";}
+async function bridgeToMainnet(){
+  if(!window.ethereum){alert("MetaMask not found");return;}
+  if(!bridgeConfig||!bridgeConfig.bridge_address){setBrStatus("❌ Bridge not deployed — set PRIVATE_BRIDGE_ADDRESS in .env","err");return;}
+  var recipient=gid("br-recipient").value.trim(),amount=gid("br-amount").value.trim();
+  if(!recipient||recipient.length!==42){setBrStatus("❌ Invalid Mainnet address","err");return;}
+  if(!amount||parseFloat(amount)<=0){setBrStatus("❌ Invalid amount","err");return;}
+  setBrStatus("⏳ Connecting MetaMask to OpenClaw Chain…","info");
+  try{
+    await window.ethereum.request({method:"eth_requestAccounts"});
+    var cur=await window.ethereum.request({method:"eth_chainId"});
+    if(cur.toLowerCase()!==CHAIN_ID_HEX.toLowerCase()){
+      try{await window.ethereum.request({method:"wallet_switchEthereumChain",params:[{chainId:CHAIN_ID_HEX}]});}
+      catch(e){if(e.code===4902&&networkConfig)await window.ethereum.request({method:"wallet_addEthereumChain",params:[{chainId:CHAIN_ID_HEX,chainName:networkConfig.chain_name,nativeCurrency:networkConfig.currency,rpcUrls:[networkConfig.rpc_url],blockExplorerUrls:[networkConfig.explorer_url]}]});else throw e;}
+    }
+    setBrStatus("⏳ Review bridge transaction in MetaMask…","info");
+    // lockETH(address mainnetRecipient) selector
+    var selector="0x37b64938";
+    var paddedRecipient=recipient.replace("0x","").padStart(64,"0");
+    var data=selector+paddedRecipient;
+    var value="0x"+BigInt(Math.round(parseFloat(amount)*1e18)).toString(16);
+    var accounts=await window.ethereum.request({method:"eth_accounts"});
+    var txHash=await window.ethereum.request({method:"eth_sendTransaction",params:[{from:accounts[0],to:bridgeConfig.bridge_address,data:data,value:value}]});
+    setBrStatus('✅ ETHLocked! TX: <a href="/tx/'+txHash+'">'+txHash.slice(0,22)+"…</a><br/>⏳ P2P relayer watching for Mainnet release…","ok");
+    setTimeout(()=>{loadBridgeRequests();loadBridgeStats();loadBridgeOracle();},4000);
+  }catch(e){setBrStatus("❌ "+e.message,"err");}
+}
+
+function loadBridgeConfig(){
+  fetch("/api/v1/bridge/config").then(r=>r.json()).then(d=>{
+    bridgeConfig=d;
+    if(gid("br-addr"))gid("br-addr").textContent=d.bridge_address?short(d.bridge_address):"Not deployed";
+    if(gid("br-balance"))gid("br-balance").textContent=d.balance_eth?parseFloat(d.balance_eth).toFixed(4)+" ETH":"—";
+    if(gid("br-fee"))gid("br-fee").textContent=d.fee_eth?d.fee_eth+" ETH":"—";
+  }).catch(()=>{});
+}
+function loadBridgeStats(){
+  fetch("/api/v1/bridge/stats").then(r=>r.json()).then(d=>{
+    if(gid("br-total"))gid("br-total").textContent=d.total_requests||"0";
+    if(gid("br-pending"))gid("br-pending").textContent=d.pending||"0";
+    if(gid("br-completed"))gid("br-completed").textContent=d.completed||"0";
+    if(gid("br-eth-total"))gid("br-eth-total").textContent=(d.total_eth_bridged||"0")+" ETH";
+    if(d.latest_oracle)updateOraclePanel({priv:{cg_usd:d.latest_oracle.private_cg_usd,bn_usd:d.latest_oracle.private_bn_usd,avg_usd:d.latest_oracle.private_avg_usd},main:{cg_usd:d.latest_oracle.mainnet_cg_usd,bn_usd:d.latest_oracle.mainnet_bn_usd,avg_usd:d.latest_oracle.mainnet_avg_usd},delta:d.latest_oracle.price_delta_usd});
+  }).catch(()=>{});
+}
+function loadBridgeRequests(){
+  fetch("/api/v1/bridge/requests?limit=10").then(r=>r.json()).then(d=>{
+    if(!d.requests||!d.requests.length){gid("br-tbody").innerHTML='<tr class="erow"><td colspan="9">No bridge requests yet</td></tr>';return;}
+    var html="";d.requests.forEach(r=>{
+      var sc=r.status==="completed"?"pg":r.status==="failed"?"pr":"pa";
+      var delta=parseFloat(r.eth_price_usd_private||0)-parseFloat(r.eth_price_usd_mainnet||0);
+      html+='<tr><td><span style="font-family:var(--mono);font-size:9px">'+(r.request_id||"—").slice(0,12)+"…</span></td><td><a href='/address/"+(r.sender||"")+"' class='mono'>"+short(r.sender)+"</a></td><td><a href='https://etherscan.io/address/"+(r.recipient||"")+"' target='_blank' class='mono'>"+short(r.recipient)+"</a></td><td style='font-family:var(--mono)'>"+(parseFloat(r.amount_eth||0).toFixed(4))+" ETH</td><td style='color:var(--amber)'>$"+fmt(parseFloat(r.amount_usd||0),2)+"</td><td style='font-family:var(--mono);font-size:10px'>$"+fmt(r.eth_price_usd_private||0,2)+"</td><td style='font-family:var(--mono);font-size:10px'>$"+fmt(r.eth_price_usd_mainnet||0,2)+"</td><td style='font-family:var(--mono);font-size:10px;color:"+(delta>=0?"var(--green)":"var(--red)")+"'>"+(delta>=0?"+":"")+delta.toFixed(2)+"</td><td><span class='pill "+sc+"'>"+r.status+"</span></td></tr>";
+    });
+    gid("br-tbody").innerHTML=html;
+    gid("br-upd").textContent="Updated "+new Date().toLocaleTimeString();
+  }).catch(()=>{gid("br-tbody").innerHTML='<tr class="erow"><td colspan="9">Bridge not deployed yet</td></tr>';});
+}
+
+// P2P
+function loadP2P(){
+  fetch("/api/v1/p2p").then(r=>r.json()).then(d=>{
+    var count=d.peer_count||0;
+    if(gid("p2p-port"))gid("p2p-port").textContent=d.port||30303;
+    if(gid("p2p-count"))gid("p2p-count").textContent=count;
+    if(gid("p2p-host"))gid("p2p-host").textContent=d.host||"—";
+    if(gid("p2p-count-badge"))gid("p2p-count-badge").textContent=count+" peers";
+    if(gid("s-peers"))gid("s-peers").textContent=count;
+    if(gid("hp2p"))gid("hp2p").textContent="P2P "+count;
+    if(d.self&&d.self.enode&&gid("p2p-enode"))gid("p2p-enode").textContent=d.self.enode.slice(0,48)+"…";
+    // Reverse routes
+    var routes=d.reverse_routes||[];
+    var routesEl=gid("p2p-routes");
+    if(routes.length){routesEl.innerHTML=routes.map(r=>'<div style="margin-bottom:6px"><strong style="color:var(--purple)">'+r.label+'</strong><br/>'+r.from.name+" → "+r.to.name+(r.bypass_l2?" · <span style='color:var(--green)'>no L2</span>":"")+'</div>').join("");}
+    // Peers
+    var peers=d.peers||[];var el=gid("p2p-peers");
+    if(!peers.length){el.innerHTML='<div style="font-family:var(--mono);font-size:10px;color:var(--muted2);padding:12px">No peers (--nodiscover mode or --rpcapi admin missing)</div>';return;}
+    el.innerHTML=peers.map(p=>'<div style="display:flex;justify-content:space-between;padding:8px 14px;border-top:1px solid var(--border);font-size:11px"><span class="mono">'+p.id+'</span><span style="font-size:9px;color:var(--muted)">'+(p.network?.remoteAddress||"")+'</span><span class="pill '+(p.network?.inbound?"pb":"pg")+'">'+(p.network?.inbound?"← IN":"→ OUT")+'</span></div>').join("");
+  }).catch(()=>{});
+}
+function refreshP2P(){loadP2P();}
+
+// Nginx
+function loadNginxConfig(){
+  fetch("/api/v1/nginx").then(r=>r.json()).then(d=>{
+    if(d.tls_versions&&gid("ng-badge"))gid("ng-badge").textContent=d.tls_versions.join(" / ");
+    var html="";(d.routes||[]).forEach(r=>{html+='<tr><td><strong>'+r.listen+'</strong></td><td style="font-size:11px">'+r.purpose+'</td><td><span class="mono">'+r.proxy_pass+'</span></td><td><span class="pill pg">SSL</span></td><td>'+(r.cors?'<span class="pill pg">*</span>':"—")+'</td><td><a href="'+(r.url||"#")+'" target="_blank" style="font-family:var(--mono);font-size:10px">'+(r.url||"—")+'</a></td></tr>';});
+    if(d.p2p)html+='<tr style="background:#f5f3ff"><td><strong>'+d.p2p.port+' TCP+UDP</strong></td><td>P2P devp2p</td><td><span class="mono">'+d.p2p.host+':'+d.p2p.port+'</span></td><td><span class="pill pa">Direct</span></td><td><span class="pill pp">P2P</span></td><td>—</td></tr>';
+    if(gid("ng-tbody"))gid("ng-tbody").innerHTML=html||'<tr class="erow"><td colspan="6">No routes</td></tr>';
+    if(gid("ng-upd"))gid("ng-upd").textContent="Updated "+new Date().toLocaleTimeString();
+    if(d.nginx_snippet&&gid("ng-snippet"))gid("ng-snippet").textContent=d.nginx_snippet.trim();
+    if(gid("hng"))gid("hng").textContent=(d.ssl?"SSL ✓":"nginx")+" "+d.domain;
+  }).catch(()=>{if(gid("ng-tbody"))gid("ng-tbody").innerHTML='<tr class="erow"><td colspan="6">Could not load nginx config</td></tr>';});
+}
+
+// Network
+function loadNetworkConfig(){
+  fetch("/api/v1/network").then(r=>r.json()).then(d=>{
+    networkConfig=d;
+    if(gid("mm-rpc"))gid("mm-rpc").textContent=d.rpc_url;
+    if(gid("mm-ws"))gid("mm-ws").textContent=d.ws_url;
+    if(gid("mm-netname"))gid("mm-netname").textContent=d.chain_name;
+    if(gid("mm-domain"))gid("mm-domain").textContent=d.nginx_domain;
+  }).catch(()=>{});
+}
+function addNetworkMM(){if(!window.ethereum){alert("MetaMask not found");return;}if(!networkConfig){alert("Loading...");return;}window.ethereum.request({method:"wallet_addEthereumChain",params:[{chainId:CHAIN_ID_HEX,chainName:networkConfig.chain_name,nativeCurrency:networkConfig.currency,rpcUrls:[networkConfig.rpc_url],blockExplorerUrls:[networkConfig.explorer_url]}]}).then(()=>alert("Added!")).catch(e=>alert("Error: "+e.message));}
+function importToken(){if(!window.ethereum){alert("MetaMask not found");return;}window.ethereum.request({method:"wallet_watchAsset",params:{type:"ERC20",options:{address:SUSDC_ADDR,symbol:"sUSDC",decimals:6,image:"https://raw.githubusercontent.com/sakbayeme2015/token-asset3/main/0x22f1f5ee41df61e4d66dda698b2120c74c9c3be8.png"}}}).then(added=>alert(added?"sUSDC imported!":"Cancelled")).catch(e=>alert(e.message));}
+
+// Token
+function loadToken(){
+  fetch("/api/v2/tokens/"+SUSDC_ADDR).then(r=>r.json()).then(d=>{
+    var price=parseFloat(d.exchange_rate||"1"),supply=parseFloat(d.total_supply||"1e12")/1e6,mcap=supply*price;
+    if(gid("mm-price"))gid("mm-price").textContent="$"+price.toFixed(6);
+    if(gid("s-susdc"))gid("s-susdc").textContent=fmt(supply,0)+" sUSDC";
+    gid("tok-tbody").innerHTML='<tr><td><strong>'+d.symbol+'</strong><span style="color:var(--muted);margin-left:8px;font-size:11px">'+d.name+'</span></td><td><a href="/address/'+SUSDC_ADDR+'" class="mono">'+short(SUSDC_ADDR)+'</a></td><td><span class="pill pg">$'+price.toFixed(6)+'</span></td><td>'+fmt(supply,0)+' sUSDC</td><td>$'+fmt(mcap,0)+'</td></tr>';
+  }).catch(()=>{});
+}
+function loadChain(){
+  fetch("/api/chain").then(r=>r.json()).then(d=>{
+    var n=d.block_height||0;gid("s-block").textContent="#"+n.toLocaleString();gid("hblock").textContent="BLOCK #"+n.toLocaleString();if(d.eth_price)ethPrice=d.eth_price;if(d.p2p_peers!==undefined){gid("s-peers").textContent=d.p2p_peers;gid("hp2p").textContent="P2P "+d.p2p_peers;}
+  }).catch(()=>{});
+  fetch("/api/address/"+OWNER_ADDR).then(r=>r.json()).then(d=>{
+    var eth=parseFloat(d.balance_eth||"0");gid("s-eth").textContent=fmt(eth,4)+" ETH";gid("s-usd").textContent="$"+fmt(eth*ethPrice,0);if(d.token_balances&&d.token_balances.length)gid("s-susdc").textContent=fmt(parseFloat(d.token_balances[0].balance),0)+" sUSDC";
+  }).catch(()=>{});
+}
+function loadBlocks(){
+  fetch("/api/blocks?limit=8").then(r=>r.json()).then(d=>{
+    if(!d.blocks||!d.blocks.length){gid("blk-tbody").innerHTML='<tr class="erow"><td colspan="6">No blocks — run indexer.js</td></tr>';return;}
+    gid("blk-tbody").innerHTML=d.blocks.map(b=>'<tr><td><a href="/block/'+b.number+'" class="pill pb" style="text-decoration:none">#'+b.number.toLocaleString()+'</a></td><td><a href="/block/'+b.number+'" class="mono">'+short(b.hash)+'</a></td><td><a href="/address/'+b.miner+'" class="mono">'+short(b.miner)+'</a></td><td>'+(b.tx_count||0)+'</td><td style="color:var(--muted)">'+parseInt(b.gas_used||0).toLocaleString()+'</td><td style="color:var(--muted)">'+ago(b.timestamp)+'</td></tr>').join("");
+    gid("blk-upd").textContent="Updated "+new Date().toLocaleTimeString();
+  }).catch(()=>{gid("blk-tbody").innerHTML='<tr class="erow"><td colspan="6">Loading…</td></tr>';});
+}
+function loadTxs(){
+  fetch("/api/transactions/all?limit=10").then(r=>r.json()).then(d=>{
+    if(!d.transactions||!d.transactions.length){gid("tx-tbody").innerHTML='<tr class="erow"><td colspan="8">No transactions yet</td></tr>';return;}
+    gid("tx-tbody").innerHTML=d.transactions.map(tx=>{var st=tx.status==="success"?"pg":"pr";var typ=tx.tx_type||"ETH";var tc=typ==="sUSDC"?"pb":typ==="CONTRACT"?"pa":"pg";return'<tr><td><a href="/tx/'+tx.hash+'" class="mono">'+short(tx.hash)+'</a></td><td><a href="/block/'+(tx.block_number||0)+'" class="pill pb" style="text-decoration:none">#'+(tx.block_number||0).toLocaleString()+'</a></td><td><a href="/address/'+(tx.from_address||"")+'" class="mono">'+short(tx.from_address)+'</a></td><td><a href="/address/'+(tx.to_address||"")+'" class="mono">'+short(tx.to_address)+'</a></td><td>'+(tx.value_eth||"0")+'</td><td style="color:var(--amber)">'+(tx.value_usd||"$0")+'</td><td><span class="pill '+tc+'">'+typ+'</span></td><td><span class="pill '+st+'">'+(tx.status||"—")+'</span></td></tr>';}).join("");
+    gid("tx-upd").textContent="Updated "+new Date().toLocaleTimeString()+(d.cg_usd?" · CG:$"+fmt(d.cg_usd,2):"")+(d.bn_usd?" BN:$"+fmt(d.bn_usd,2):"");
+  }).catch(()=>{});
+}
+function pollPrice(){fetch("/api/v1/eth-price").then(r=>r.json()).then(d=>{if(d.history)priceHist=d.history;var dir=parseFloat(d.usd)>ethPrice?"up":parseFloat(d.usd)<ethPrice?"down":"same";showETH(d,dir);}).catch(()=>{});}
+
+// Clock
+setInterval(()=>{gid("clock").textContent=new Date().toLocaleString();},1000);
+
+// MetaMask events
+if(window.ethereum){window.ethereum.on("accountsChanged",acc=>{if(acc.length>0){connectedAddr=acc[0];gid("wallet-info").innerHTML='<span style="color:var(--green)">✅</span> '+connectedAddr.slice(0,14)+"…";}else{connectedAddr="";}});window.ethereum.on("chainChanged",()=>window.location.reload());}
+
+function loadAll(){loadToken();loadChain();loadBlocks();loadTxs();loadBridgeConfig();loadBridgeStats();loadBridgeRequests();loadBridgeOracle();loadP2P();loadNginxConfig();loadUSDTPrice();loadTokenBridgeStats();loadTokenBridgeRequests();loadWPETH();}
+
+// ── Token Bridge JS ──────────────────────────────────────────
+var usdtPrice = 1.0;
+var SUSDC_ADDR_PRIV = "0x22f1f5eE41Df61E4d66dDA698b2120C74C9C3bE8";
+var USDT_ADDR_MAIN  = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
+
+function updateTokenBridgeEst(){
+  var a=parseFloat(gid("tbr-amount").value)||0;
+  gid("tbr-est").textContent="≈ $"+(a*usdtPrice).toFixed(2)+" USD · you receive "+a.toFixed(2)+" USDT on Mainnet";
+}
+function setTbrStatus(m,c){var e=gid("tbr-status");e.innerHTML=m;e.className="tx-status "+c;e.style.display="block";}
+
+async function bridgeTokens(){
+  if(!window.ethereum){setTbrStatus("MetaMask not found","err");return;}
+  var recipient=gid("tbr-recipient").value.trim();
+  var amount=gid("tbr-amount").value.trim();
+  if(!recipient||recipient.length!==42){setTbrStatus("❌ Invalid mainnet address","err");return;}
+  if(!amount||parseFloat(amount)<=0){setTbrStatus("❌ Invalid amount","err");return;}
+  setTbrStatus("⏳ Step 1: Connecting MetaMask to OpenClaw Chain…","info");
+  try{
+    await window.ethereum.request({method:"eth_requestAccounts"});
+    var cur=await window.ethereum.request({method:"eth_chainId"});
+    if(cur.toLowerCase()!==CHAIN_ID_HEX.toLowerCase()){
+      try{await window.ethereum.request({method:"wallet_switchEthereumChain",params:[{chainId:CHAIN_ID_HEX}]});}
+      catch(e){if(e.code===4902&&networkConfig)await window.ethereum.request({method:"wallet_addEthereumChain",params:[{chainId:CHAIN_ID_HEX,chainName:networkConfig.chain_name,nativeCurrency:networkConfig.currency,rpcUrls:[networkConfig.rpc_url],blockExplorerUrls:[networkConfig.explorer_url]}]});else throw e;}
+    }
+    var accounts=await window.ethereum.request({method:"eth_accounts"});
+    var from=accounts[0];
+    var amtWei="0x"+BigInt(Math.round(parseFloat(amount)*1e6)).toString(16);
+
+    // Step 1: Approve sUSDC spending
+    setTbrStatus("⏳ Step 1: Approving sUSDC for bridge contract…","info");
+    // Get bridge address from config
+    var cfgResp=await fetch("/api/v1/token-bridge/config");
+    var cfg=await cfgResp.json();
+    if(!cfg.bridge_address){setTbrStatus("❌ Token bridge not deployed — set TOKEN_BRIDGE_ADDRESS in .env","err");return;}
+    // ERC20 approve selector: approve(address,uint256)
+    var approveSelector="0x095ea7b3";
+    var paddedSpender=cfg.bridge_address.replace("0x","").padStart(64,"0");
+    var paddedAmount=BigInt(Math.round(parseFloat(amount)*1e6)).toString(16).padStart(64,"0");
+    var approveTx=await window.ethereum.request({method:"eth_sendTransaction",params:[{from,to:SUSDC_ADDR_PRIV,data:approveSelector+paddedSpender+paddedAmount,value:"0x0"}]});
+    setTbrStatus("✅ Step 1: Approved! TX: "+approveTx.slice(0,18)+"…<br/>⏳ Step 2: Locking sUSDC in bridge…","ok");
+
+    // Step 2: Lock tokens in bridge
+    // lockTokens(address mainnetRecipient, uint256 amount) selector
+    var lockSelector="0x0a798e11";
+    var paddedRecip=recipient.replace("0x","").padStart(64,"0");
+    var lockTx=await window.ethereum.request({method:"eth_sendTransaction",params:[{from,to:cfg.bridge_address,data:lockSelector+paddedRecip+paddedAmount,value:"0x0"}]});
+    setTbrStatus('✅ sUSDC Locked! TX: <a href="/tx/'+lockTx+'">'+lockTx.slice(0,18)+'…</a><br/>⏳ Relayer sending USDT on Mainnet…<br/>📍 Check USDT at: '+USDT_ADDR_MAIN,"ok");
+    setTimeout(()=>{loadTokenBridgeRequests();loadTokenBridgeStats();},4000);
+  }catch(e){setTbrStatus("❌ "+e.message,"err");}
+}
+
+async function checkBothChains(){
+  var addr=gid("bal-addr").value.trim();
+  if(!addr||addr.length!==42){gid("bal-result").textContent="❌ Invalid address";return;}
+  gid("bal-result").textContent="⌛ Fetching both chains simultaneously…";
+  try{
+    var r=await fetch("/api/v1/token-balance/both-chains?address="+addr);
+    var d=await r.json();
+    gid("bal-result").innerHTML=
+      "<strong style='color:var(--green)'>Private Chain:</strong> "+parseFloat(d.private_chain.balance||0).toFixed(2)+" sUSDC<br/>"+
+      "<strong style='color:var(--blue2)'>Mainnet:</strong> "+parseFloat(d.mainnet.balance||0).toFixed(2)+" USDT<br/>"+
+      "<span style='color:var(--muted2);font-size:9px'>Fetched simultaneously • USDT: $"+d.usdt_price+"</span>";
+  }catch(e){gid("bal-result").textContent="Error: "+e.message;}
+}
+
+function loadUSDTPrice(){
+  fetch("/api/v1/usdt-price").then(r=>r.json()).then(d=>{
+    usdtPrice=parseFloat(d.usdt?.avg_usd||d.usdt?.usd||1);
+    if(gid("usdt-cg"))gid("usdt-cg").textContent=d.usdt.cg_usd?"$"+parseFloat(d.usdt.cg_usd).toFixed(6):"$1.000000";
+    if(gid("usdt-bn"))gid("usdt-bn").textContent=d.usdt.bn_usd?"$"+parseFloat(d.usdt.bn_usd).toFixed(6):"$1.000000";
+    if(gid("usdt-avg"))gid("usdt-avg").textContent="$"+usdtPrice.toFixed(6);
+    if(gid("usdt-src"))gid("usdt-src").textContent=d.usdt.source||"coingecko+binance";
+    if(gid("usdt-cg-time"))gid("usdt-cg-time").textContent=new Date().toLocaleTimeString();
+    if(gid("susdc-supply"))gid("susdc-supply").textContent=parseFloat(d.susdc?.total_supply||0).toLocaleString()+" sUSDC";
+    if(gid("usdt-supply"))gid("usdt-supply").textContent=parseFloat(d.usdt?.total_supply||0).toLocaleString()+" USDT";
+    // Oracle panel
+    if(gid("tor-usdt-cg"))gid("tor-usdt-cg").textContent=d.usdt.cg_usd?"$"+parseFloat(d.usdt.cg_usd).toFixed(6):"—";
+    if(gid("tor-usdt-bn"))gid("tor-usdt-bn").textContent=d.usdt.bn_usd?"$"+parseFloat(d.usdt.bn_usd).toFixed(6):"—";
+    if(gid("tor-usdt-avg"))gid("tor-usdt-avg").textContent="$"+usdtPrice.toFixed(6);
+    if(gid("tor-susdc-supply"))gid("tor-susdc-supply").textContent=parseFloat(d.susdc?.total_supply||0).toLocaleString();
+    if(gid("tor-usdt-supply"))gid("tor-usdt-supply").textContent=parseFloat(d.usdt?.total_supply||0).toLocaleString();
+  }).catch(()=>{});
+}
+
+function loadTokenBridgeStats(){
+  fetch("/api/v1/token-bridge/stats").then(r=>r.json()).then(d=>{
+    if(gid("tbr-total"))gid("tbr-total").textContent=d.total_requests||"0";
+    if(gid("susdc-supply"))gid("susdc-supply").textContent=parseFloat(d.susdc_supply_private||0).toLocaleString()+" sUSDC";
+    if(gid("usdt-supply"))gid("usdt-supply").textContent=parseFloat(d.usdt_reserve_mainnet||0).toLocaleString()+" USDT";
+  }).catch(()=>{});
+}
+
+function loadTokenBridgeRequests(){
+  fetch("/api/v1/token-bridge/requests?limit=10").then(r=>r.json()).then(d=>{
+    if(!d.requests||!d.requests.length){gid("tbr-tbody").innerHTML='<tr class="erow"><td colspan="8">No token bridge requests yet</td></tr>';return;}
+    var html="";d.requests.forEach(r=>{
+      var sc=r.status==="completed"?"pg":r.status==="failed"?"pr":"pa";
+      html+='<tr><td><span style="font-family:var(--mono);font-size:9px">'+(r.request_id||"—").slice(0,12)+"…</span></td>"+
+            '<td><a href="/address/'+(r.sender||"")+'" class="mono">'+short(r.sender)+'</a></td>'+
+            '<td><a href="https://etherscan.io/address/'+(r.recipient||"")+'" target="_blank" class="mono">'+short(r.recipient)+'</a></td>'+
+            '<td style="font-family:var(--mono)">'+(parseFloat(r.amount_tokens||0).toFixed(2))+" sUSDC</td>"+
+            '<td style="color:var(--amber)">$'+fmt(parseFloat(r.amount_usd||0),2)+"</td>"+
+            '<td style="font-family:var(--mono);font-size:10px">$'+(r.usdt_price_cg?parseFloat(r.usdt_price_cg).toFixed(6):"—")+"</td>"+
+            '<td style="font-family:var(--mono);font-size:10px">$'+(r.usdt_price_bn?parseFloat(r.usdt_price_bn).toFixed(6):"—")+"</td>"+
+            '<td><span class="pill '+sc+'">'+r.status+"</span></td></tr>";
+    });
+    gid("tbr-tbody").innerHTML=html;
+    gid("tbr-upd").textContent="Updated "+new Date().toLocaleTimeString();
+  }).catch(()=>{gid("tbr-tbody").innerHTML='<tr class="erow"><td colspan="8">Token bridge not deployed yet</td></tr>';});
+}
+
+// Handle WS token bridge events
+// (injected into the existing ws.onmessage handler)
+// ── wPETH JavaScript ─────────────────────────────────────────
+var wpethPrice = 0, wpethAddress = null;
+
+function updateWPETHEst(){
+  var a=parseFloat(gid("wpeth-lock-amt").value)||0;
+  gid("wpeth-est").textContent="≈ $"+(a*ethPrice).toFixed(2)+" USD · you receive "+a.toFixed(4)+" wPETH on Mainnet";
+}
+
+function setWPETHLockStatus(m,c){
+  var e=gid("wpeth-lock-status");e.innerHTML=m;e.className="tx-status "+c;e.style.display="block";
+}
+
+function showWPETHPrice(d) {
+  var p = parseFloat(d.price_usd||d.eth_price_live||d.usd||0);
+  var cg= parseFloat(d.cg_usd||d.eth_cg_live||0);
+  var bn= parseFloat(d.bn_usd||d.eth_bn_live||0);
+  var oc= parseFloat(d.on_chain_price||d.eth_price_usd||0);
+  wpethPrice = p;
+  // Hero
+  if(gid("wpeth-big"))gid("wpeth-big").textContent="$"+fmt(p,2);
+  if(gid("wpeth-cg"))gid("wpeth-cg").textContent="$"+fmt(cg,2);
+  if(gid("wpeth-bn"))gid("wpeth-bn").textContent="$"+fmt(bn,2);
+  if(gid("wpeth-onchain"))gid("wpeth-onchain").textContent=oc?"$"+fmt(oc,2):"updating…";
+  if(gid("wpeth-src")&&d.source)gid("wpeth-src").textContent=d.source;
+  if(gid("wpeth-upd"))gid("wpeth-upd").textContent="Updated "+new Date().toLocaleTimeString();
+  // Cards
+  if(gid("wpeth-cg-card"))gid("wpeth-cg-card").textContent=cg?"$"+fmt(cg,2):"$"+fmt(p,2);
+  if(gid("wpeth-bn-card"))gid("wpeth-bn-card").textContent=bn?"$"+fmt(bn,2):"$"+fmt(p,2);
+  if(gid("wpeth-oracle-card"))gid("wpeth-oracle-card").textContent=oc?"$"+fmt(oc,2):"$"+fmt(p,2);
+  if(gid("wpeth-cg-time"))gid("wpeth-cg-time").textContent=new Date().toLocaleTimeString();
+  if(gid("wpeth-oracle-time")&&d.price_updated)gid("wpeth-oracle-time").textContent=new Date(d.price_updated).toLocaleTimeString();
+  // Peg ratio
+  var peg=p>0&&ethPrice>0?(p/ethPrice).toFixed(6):"1.000000";
+  if(gid("wpeth-peg"))gid("wpeth-peg").textContent=peg;
+}
+
+function showWPETHStats(d) {
+  if(gid("wpeth-total-supply"))gid("wpeth-total-supply").textContent=parseFloat(d.total_supply||0).toFixed(4)+" wPETH";
+  if(gid("wpeth-total-minted"))gid("wpeth-total-minted").textContent=parseFloat(d.total_minted||0).toFixed(4)+" wPETH";
+  if(gid("wpeth-total-burned"))gid("wpeth-total-burned").textContent=parseFloat(d.total_burned||0).toFixed(4)+" wPETH";
+  if(d.address){
+    wpethAddress=d.address;
+    if(gid("wpeth-addr"))gid("wpeth-addr").textContent=d.address.slice(0,10)+"…"+d.address.slice(-8);
+    if(gid("wpeth-import-addr"))gid("wpeth-import-addr").textContent=d.address;
+  }
+  showWPETHPrice(d);
+}
+
+function loadWPETH(){
+  fetch("/api/v1/wpeth").then(r=>r.json()).then(d=>{
+    showWPETHStats(d);
+  }).catch(()=>{});
+  fetch("/api/v1/wpeth/price").then(r=>r.json()).then(d=>{
+    showWPETHPrice(d);
+  }).catch(()=>{});
+}
+
+async function checkWPETHBalance(){
+  var addr=gid("wpeth-bal-addr").value.trim();
+  if(!addr||addr.length!==42){gid("wpeth-bal-result").textContent="❌ Invalid address";return;}
+  gid("wpeth-bal-result").textContent="⌛ Fetching from Mainnet…";
+  try{
+    var r=await fetch("/api/v1/wpeth/balance/"+addr);
+    var d=await r.json();
+    if(d.error){gid("wpeth-bal-result").textContent="❌ "+d.error;return;}
+    gid("wpeth-bal-result").innerHTML=
+      "<strong style='color:var(--purple)'>wPETH Balance:</strong> "+parseFloat(d.wpeth_balance||0).toFixed(6)+" wPETH<br/>"+
+      "<strong style='color:var(--green)'>Value USD:</strong> $"+parseFloat(d.value_usd||0).toFixed(2)+"<br/>"+
+      "<strong style='color:var(--blue2)'>ETH Price:</strong> $"+fmt(d.eth_price||0,2)+" [CG:$"+fmt(d.cg_usd||0,2)+" BN:$"+fmt(d.bn_usd||0,2)+"]<br/>"+
+      "<a href='"+d.etherscan+"' target='_blank' style='font-family:var(--mono);font-size:9px;color:var(--muted2)'>View on Etherscan →</a>";
+  }catch(e){gid("wpeth-bal-result").textContent="Error: "+e.message;}
+}
+
+async function connectWPETH(){
+  if(!window.ethereum){setWPETHLockStatus("MetaMask not found","err");return;}
+  try{
+    await window.ethereum.request({method:"eth_requestAccounts"});
+    var cur=await window.ethereum.request({method:"eth_chainId"});
+    if(cur.toLowerCase()!==CHAIN_ID_HEX.toLowerCase()){
+      try{await window.ethereum.request({method:"wallet_switchEthereumChain",params:[{chainId:CHAIN_ID_HEX}]});}
+      catch(e){if(e.code===4902&&networkConfig)await window.ethereum.request({method:"wallet_addEthereumChain",params:[{chainId:CHAIN_ID_HEX,chainName:networkConfig.chain_name,nativeCurrency:networkConfig.currency,rpcUrls:[networkConfig.rpc_url],blockExplorerUrls:[networkConfig.explorer_url]}]});}
+    }
+    var accounts=await window.ethereum.request({method:"eth_accounts"});
+    gid("wpeth-wallet-info").innerHTML='<span style="color:var(--green)">✅ Connected:</span> '+accounts[0].slice(0,14)+"…";
+    setWPETHLockStatus("✅ Connected to OpenClaw Chain — ready to lock ETH","ok");
+  }catch(e){setWPETHLockStatus("❌ "+e.message,"err");}
+}
+
+async function lockForWPETH(){
+  if(!window.ethereum){setWPETHLockStatus("MetaMask not found","err");return;}
+  var amt=gid("wpeth-lock-amt").value.trim();
+  if(!amt||parseFloat(amt)<=0){setWPETHLockStatus("❌ Enter amount","err");return;}
+  setWPETHLockStatus("⏳ Connecting to OpenClaw Chain…","info");
+  try{
+    await window.ethereum.request({method:"eth_requestAccounts"});
+    var cur=await window.ethereum.request({method:"eth_chainId"});
+    if(cur.toLowerCase()!==CHAIN_ID_HEX.toLowerCase()){
+      try{await window.ethereum.request({method:"wallet_switchEthereumChain",params:[{chainId:CHAIN_ID_HEX}]});}
+      catch(e){if(e.code===4902&&networkConfig)await window.ethereum.request({method:"wallet_addEthereumChain",params:[{chainId:CHAIN_ID_HEX,chainName:networkConfig.chain_name,nativeCurrency:networkConfig.currency,rpcUrls:[networkConfig.rpc_url],blockExplorerUrls:[networkConfig.explorer_url]}]});else throw e;}
+    }
+    var accounts=await window.ethereum.request({method:"eth_accounts"});
+    // Get bridge config for contract address
+    var cfg=await fetch("/api/v1/bridge/config").then(r=>r.json());
+    if(!cfg.bridge_address){setWPETHLockStatus("❌ Bridge not deployed — run: node deploy.js first","err");return;}
+    setWPETHLockStatus("⏳ Review lockETH transaction in MetaMask…","info");
+    // lockETH(address mainnetRecipient) → recipient = same address on mainnet
+    var selector="0x84a73e53"; // lockETH(address)
+    var paddedAddr=accounts[0].replace("0x","").padStart(64,"0");
+    var totalWei="0x"+BigInt(Math.round((parseFloat(amt)+0.001)*1e18)).toString(16);
+    var txHash=await window.ethereum.request({method:"eth_sendTransaction",params:[{
+      from:accounts[0], to:cfg.bridge_address,
+      data:selector+paddedAddr, value:totalWei
+    }]});
+    setWPETHLockStatus(
+      '✅ ETH Locked! TX: <a href="/tx/'+txHash+'">'+txHash.slice(0,18)+'…</a><br/>'+
+      '⏳ Relayer will mint <strong>'+amt+' wPETH</strong> on Mainnet shortly…<br/>'+
+      '🔮 CG+BN price oracle updates automatically at mint time',
+      "ok"
+    );
+    setTimeout(loadWPETH, 5000);
+  }catch(e){setWPETHLockStatus("❌ "+e.message,"err");}
+}
+
+async function importWPETH(){
+  if(!window.ethereum){alert("MetaMask not found");return;}
+  if(!wpethAddress){alert("wPETH not deployed yet — run: node deploy.js --deploy-wpeth");return;}
+  // Switch to Ethereum Mainnet first
+  try{await window.ethereum.request({method:"wallet_switchEthereumChain",params:[{chainId:"0x1"}]});}catch{}
+  window.ethereum.request({
+    method:"wallet_watchAsset",
+    params:{type:"ERC20",options:{address:wpethAddress,symbol:"wPETH",decimals:18}}
+  }).then(added=>alert(added?"✅ wPETH imported to MetaMask on Ethereum Mainnet!":"Cancelled"))
+    .catch(e=>alert(e.message));
+}
+
+// Boot
+startWS();loadNetworkConfig();loadAll();
+setInterval(loadAll,15000);setInterval(pollPrice,30000);setInterval(loadWPETH,90000);
+</script>
+</body>
+</html>
